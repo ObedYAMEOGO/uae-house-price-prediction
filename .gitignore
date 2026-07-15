@@ -29,3 +29,4 @@ frontend/.next/
 # generated data
 data/processed/*.csv
 backend/model/*.pkl
+backend/model/*.pkl
