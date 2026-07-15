@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -27,11 +29,13 @@ def health_check():
     fe_ok = True
     try:
         load_model()
-    except FileNotFoundError:
+    except Exception as e:
+        app.logger.error(f"Failed to load model: {e}")
         model_ok = False
     try:
         load_feature_engineer()
-    except FileNotFoundError:
+    except Exception as e:
+        app.logger.error(f"Failed to load feature engineer: {e}")
         fe_ok = False
 
     return HealthResponse(
