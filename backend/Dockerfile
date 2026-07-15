@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Pre-download models at build time (not at runtime)
-RUN python -c "from model_loader import load_model, load_feature_engineer; load_model(); load_feature_engineer()"
+# Pre-download models at build time
+RUN python backend/setup_models.py
 
 EXPOSE 8080
 
