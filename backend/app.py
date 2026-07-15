@@ -3,9 +3,9 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.model_loader import load_model, load_feature_engineer
-from backend.routes.predict import router as predict_router
-from backend.schemas import HealthResponse
+from model_loader import load_model, load_feature_engineer
+from routes.predict import router as predict_router
+from schemas import HealthResponse
 
 app = FastAPI(
     title="UAE Rent Prediction API",
