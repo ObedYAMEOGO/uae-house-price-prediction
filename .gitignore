@@ -3,7 +3,6 @@ data/raw/*
 !data/raw/.gitkeep
 mlruns/
 mlruns.db
-backend/model/*.pkl
 
 # python
 __pycache__/
@@ -21,6 +20,11 @@ frontend/node_modules/
 frontend/.next/
 
 # os
-.DS_Store.zen/config.yaml
+.DS_Store
+
+# editor / zenml local config
+.zen/config.yaml
 .vscode/
+
+# generated data
 data/processed/*.csv
