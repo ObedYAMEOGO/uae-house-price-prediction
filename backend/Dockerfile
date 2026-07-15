@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Pre-download models at build time
-RUN python backend/setup_models.py
+RUN python setup_models.py
 
 EXPOSE 8080
 

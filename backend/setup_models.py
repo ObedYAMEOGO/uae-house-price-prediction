@@ -3,11 +3,12 @@
 import sys
 import logging
 
+from backend.model_loader import load_feature_engineer, load_model
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 try:
-    from backend.model_loader import load_model, load_feature_engineer
     
     logger.info("Downloading model...")
     load_model()
