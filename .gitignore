@@ -2,6 +2,7 @@
 data/raw/*
 !data/raw/.gitkeep
 mlruns/
+mlruns.db
 backend/model/*.pkl
 
 # python
@@ -20,4 +21,5 @@ frontend/node_modules/
 frontend/.next/
 
 # os
-.DS_Store
+.DS_Store.zen/config.yaml
+.vscode/
