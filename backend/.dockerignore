@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.venv
+.venv-wsl
+.env
+.git
+README.md
+model_loader.py.bak
+Dockerfile
+.dockerignore

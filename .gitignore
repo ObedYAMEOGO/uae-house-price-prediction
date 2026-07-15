@@ -30,3 +30,5 @@ frontend/.next/
 data/processed/*.csv
 backend/model/*.pkl
 backend/model/*.pkl
+.vercel
+.env*
