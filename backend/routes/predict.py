@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException
 
-from backend.schemas import PropertyFeatures, PredictionResponse
-from backend.model_loader import load_model, load_feature_engineer
+from schemas import PropertyFeatures, PredictionResponse
+from model_loader import load_model, load_feature_engineer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
