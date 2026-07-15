@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Design Tokens
+   ========================================================================== */
+
+:root {
+  /* Colors */
+  --color-blueprint-950: #0a1f33;
+  --color-blueprint-800: #123a5c;
+  --color-blueprint-line: #7fb3d5;
+
+  --color-gold: #c9a24b;
+
+  --color-paper: #f6f1e4;
+  --color-paper-muted: #d9d1bf;
+
+  --color-ink: #12202b;
+
+  --color-surface: rgb(255 255 255 / 4%);
+  --color-surface-hover: rgb(255 255 255 / 7%);
+  --color-border: rgb(127 179 213 / 22%);
+  --color-border-hover: rgb(127 179 213 / 45%);
+
+  /* Effects */
+  --grid-color: rgb(127 179 213 / 8%);
+  --shadow-gold: rgb(201 162 75 / 25%);
+}
+
+/* ==========================================================================
+   Tailwind Theme
+   ========================================================================== */
+
+@theme inline {
+  --color-blueprint-950: var(--color-blueprint-950);
+  --color-blueprint-800: var(--color-blueprint-800);
+  --color-blueprint-line: var(--color-blueprint-line);
+
+  --color-gold: var(--color-gold);
+
+  --color-paper: var(--color-paper);
+  --color-paper-muted: var(--color-paper-muted);
+
+  --color-ink: var(--color-ink);
+
+  --font-display: var(--font-space-grotesk);
+  --font-body: var(--font-plex-sans);
+  --font-data: var(--font-plex-mono);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-blueprint-950);
+  color: var(--color-paper);
+
+  font-family: var(--font-body);
+
+  line-height: 1.6;
+
+  text-rendering: optimizeLegibility;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   Text Selection
+   ========================================================================== */
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-blueprint-950);
+}
+
+/* ==========================================================================
+   Scrollbars
+   ========================================================================== */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-blueprint-950);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-blueprint-line);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+/* ==========================================================================
+   Blueprint Grid
+   ========================================================================== */
+
+.blueprint-grid {
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+
+  background-size: 32px 32px;
+}
+
+/* ==========================================================================
+   Inputs
+   ========================================================================== */
+
+.input,
+select.input {
+  width: 100%;
+
+  background: rgb(246 241 228 / 8%);
+
+  color: var(--color-paper);
+
+  border: 1px solid var(--color-border);
+
+  border-radius: 4px;
+
+  padding: 0.7rem 0.9rem;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.input:hover {
+  border-color: var(--color-border-hover);
+}
+
+.input:focus {
+  outline: none;
+
+  border-color: var(--color-gold);
+
+  box-shadow:
+    0 0 0 1px var(--color-gold),
+    0 0 12px var(--shadow-gold);
+}
+
+/* ==========================================================================
+   Select
+   ========================================================================== */
+
+select.input option {
+  background: var(--color-blueprint-950);
+  color: var(--color-paper);
+}
+
+select.input option:checked {
+  background: var(--color-blueprint-800);
+  color: white;
+}
+
+/* ==========================================================================
+   Cards
+   ========================================================================== */
+
+.card-blueprint {
+  background: var(--color-surface);
+
+  border: 1px solid var(--color-border);
+
+  backdrop-filter: blur(8px);
+}
+
+.card-blueprint:hover {
+  background: var(--color-surface-hover);
+}
+
+/* ==========================================================================
+   Divider
+   ========================================================================== */
+
+.blueprint-divider {
+  border-color: var(--color-border);
+}
+
+/* ==========================================================================
+   Utility
+   ========================================================================== */
+
+.gold-accent {
+  color: var(--color-gold);
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
