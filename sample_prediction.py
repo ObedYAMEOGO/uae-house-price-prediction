@@ -5,7 +5,6 @@ import pandas as pd
 import requests
 from src.feature_engineering import FeatureEngineer
 
-# Use the correct port (8001 based on your logs)
 MLFLOW_ENDPOINT_URL = "http://127.0.0.1:8000/invocations"
 FEATURE_ENGINEER_PATH = "backend/model/feature_engineer.pkl"
 
@@ -40,20 +39,16 @@ processed_input = feature_engineer.transform(raw_input)
 print(f"Processed data shape: {processed_input.shape}")
 print(f"Processed columns: {processed_input.columns.tolist()[:5]}... (showing first 5)")
 
-# Try different payload formats that MLflow accepts
 payload_formats = [
-    # Format 1: dataframe_split (your current format)
     {
         "dataframe_split": {
             "columns": processed_input.columns.tolist(),
             "data": processed_input.values.tolist(),
         }
     },
-    # Format 2: inputs (recommended by MLflow)
     {
         "inputs": processed_input.to_dict(orient="records")
     },
-    # Format 3: instances (alternative)
     {
         "instances": processed_input.to_dict(orient="records")
     },
