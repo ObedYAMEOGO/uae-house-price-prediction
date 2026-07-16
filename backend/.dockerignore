@@ -5,6 +5,5 @@ __pycache__
 .env
 .git
 README.md
-model_loader.py.bak
 Dockerfile
 .dockerignore
