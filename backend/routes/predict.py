@@ -4,13 +4,15 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException
 
-from schemas import PropertyFeatures, PredictionResponse
-from model_loader import load_model, load_feature_engineer
+from backend.schemas import PropertyFeatures, PredictionResponse
+from backend.model_loader import load_model, load_feature_engineer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 router = APIRouter()
 
+# Maps the API's snake_case field names to the raw column names the
+# FeatureEngineer/model were actually trained on.
 FIELD_TO_COLUMN = {
     "beds": "Beds",
     "baths": "Baths",
@@ -27,9 +29,8 @@ def predict(features: PropertyFeatures):
     try:
         model = load_model()
         feature_engineer = load_feature_engineer()
-    except Exception as e:
-        logging.error(f"Failed to load model or feature engineer: {e}")
-        raise HTTPException(status_code=503, detail="Models not ready yet, try again in a few seconds")
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
     raw_dict = {FIELD_TO_COLUMN[k]: [v] for k, v in features.model_dump().items()}
     raw_df = pd.DataFrame(raw_dict)
