@@ -341,9 +341,11 @@ A meaningful share of the actual work on this project was debugging environment 
 
 MIT
 
-**Project ive demo:** [https://uae-house-price-prediction-dmkn.vercel.app]
+**Project Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app]
 
-I hope this project can teach more if you are just starting in ML. 
+I hope this project can teach more if you are just starting in ML. I specially worked on this project to fill a gap. How to actually build and ship a real-world Machine learning project? 
+
+
 
 You can contact me either from here or from my website for any query or collaboration.
 
