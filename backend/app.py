@@ -3,9 +3,11 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.model_loader import load_model, load_feature_engineer
-from backend.routes.predict import router as predict_router
-from backend.schemas import HealthResponse
+from model_loader import load_model, load_feature_engineer
+from routes.predict import router as predict_router
+from schemas import HealthResponse
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 app = FastAPI(
     title="UAE Rent Prediction API",
@@ -29,7 +31,7 @@ def health_check():
     fe_ok = True
     try:
         load_model()
-    except Exception as e:  # ← Catch ALL exceptions, not just FileNotFoundError
+    except Exception as e:
         logging.error(f"Failed to load model: {e}")
         model_ok = False
     
@@ -39,7 +41,6 @@ def health_check():
         logging.error(f"Failed to load feature engineer: {e}")
         fe_ok = False
 
-    # Always return "ok" so healthcheck passes
     return HealthResponse(
         status="ok",
         model_loaded=model_ok,
