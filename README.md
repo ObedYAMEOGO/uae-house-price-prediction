@@ -2,7 +2,7 @@
 
 This project is an end-to-end machine learning project that predicts annual property rent (in AED) for residential listings across the UAE — from raw data to a live, deployed web app.
 
-**Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app]; **Model source:** [https://huggingface.co/thehatbuddy]
+**Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app]; **Model source:** [https://huggingface.co/thehatbuddy] **Dataset Used:** [https://www.kaggle.com/datasets/alexefimik/dubai-real-estate-transactions-dataset]
 
 ---
 
