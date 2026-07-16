@@ -1,44 +1,22 @@
 # UAE Rent Prediction
 
-An end-to-end machine learning project that predicts annual property rent (in AED) for residential listings across the UAE — from raw data to a live, deployed web app.
+This project is an end-to-end machine learning project that predicts annual property rent (in AED) for residential listings across the UAE — from raw data to a live, deployed web app.
 
-**Live demo:** [thehatbuddyai.space](#) &nbsp;·&nbsp; **API docs:** [Railway deployment `https://railway.com/`](#) &nbsp;·&nbsp; **Model source:** [https://huggingface.co/thehatbuddy](#)
+**Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app/](#) &nbsp;·&nbsp; **Model source:** [https://huggingface.co/thehatbuddy](#)
 
 ---
 
 ## What this project does
 
-Given a property's basic details — bedrooms, bathrooms, size, city, furnishing status, and neighborhood — the app returns an instant estimate of annual rent in AED.
+Given a property's basic details like bedrooms, bathrooms, size, city, furnishing status, and neighborhood, the app returns an instant estimate of annual rent in AED.
 
 Under the hood, it's a Random Forest Regressor trained on ~74,000 real UAE property listings, wrapped in a full production-style pipeline: data cleaning, feature engineering, experiment tracking, a REST API, and a deployed frontend.
 
-This isn't a notebook that stops at "here's my accuracy score." It's built the way a real ML system would need to work — with the debugging scars to prove it (more on that below).
+This isn't a notebook that stops at "here's my accuracy score." It's built the way a real ML system would need to work, with the debugging scars to prove it (more on that below).
 
----
+<img width="3167" height="628" alt="UAE_Rent_Prediction_Architecture" src="https://github.com/user-attachments/assets/59119ece-092d-481f-8cfd-a7dc241abba2" />
 
-## Architecture
-
-```
-┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
-│  Kaggle Dataset │─────▶   ZenML Pipeline  │─────▶ MLflow Tracking │
-│  (74k listings) │      │  (train/eval)    │      │  (metrics/runs) │
-└─────────────────┘      └──────────────────┘      └─────────────────┘
-                                   │
-                                   ▼
-                        ┌────────────────────┐
-                        │  model.pkl +       │
-                        │  feature_engineer  │
-                        │  .pkl(Hugging Face)│
-                        └────────────────────┘
-                                   │
-                                   ▼
-                        ┌────────────────────┐        ┌──────────────────┐
-                        │  FastAPI Backend   │◀──────▶  Next.js Frontend│
-                        │  (Railway)         │  HTTP  │  (Vercel)        │
-                        └────────────────────┘        └──────────────────┘
-```
-
-The model artifacts are hosted on Hugging Face and downloaded by the backend at container startup, rather than baked into the Docker image or tracked via Git LFS in the main repo — a deliberate choice explained in the [Deployment Architecture](#deployment-architecture) section.
+I hosted the model on Hugging Face ([https://huggingface.co/thehatbuddy](https://huggingface.co/thehatbuddy)) because it was too large to bundle with the application, and the backend downloads it at container startup instead of baking it into the Docker image or relying on Git LFS in the main repository. This approach avoids Git LFS pointer issues during Railway deployments by ensuring the actual model is fetched directly at runtime, as explained in the [Deployment Architecture](#deployment-architecture) section.
 
 ---
 
@@ -90,7 +68,196 @@ The trained model (~54MB) needed to be reachable at inference time by a separate
 
 ---
 
-## Why Next.js instead of Streamlit
+## ZenML Setup Guide
+
+If you've cloned this project and want to run the training pipeline locally, follow these steps to initialize ZenML and connect it to MLflow for experiment tracking.
+
+### Prerequisites
+
+Ensure you have Python 3.8+ and the project dependencies installed:
+
+```bash
+git clone https://github.com/ObedYAMEOGO/uae-house-price-prediction.git
+cd uae-house-price-prediction
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate but I strongly recommenyou to switch to a linux distribution because it fill fix your daemon flakiness issues. I am using Windows OS, got to install WSL so that I could get access to a linux friendly env to run my project. 
+pip install -r requirements.txt
+```
+
+### Step 1: Initialize ZenML
+
+Initialize a new ZenML repository in your project:
+
+```bash
+zenml init
+```
+
+This creates a `.zenml/` directory with default configurations.
+
+### Step 2: Check ZenML Status
+
+Verify the installation and current setup:
+
+```bash
+zenml status
+```
+
+You should see information about your ZenML environment, Python version, and installed extensions.
+
+### Step 3: List Available Stacks
+
+View all available ZenML stacks (combinations of components like orchestrators, experiment trackers, and model deployers):
+
+```bash
+zenml stack list
+```
+
+Initially, you'll see a `default` stack.
+
+### Step 4: Register MLflow Experiment Tracker
+
+Register an MLflow experiment tracker that will log training metrics and model metadata:
+
+```bash
+zenml experiment-tracker register uae_house_price_mlflow_tracker \
+  --flavor=mlflow \
+  --tracking_uri="sqlite:///$(pwd)/mlruns.db"
+```
+
+This creates a local SQLite database for MLflow (`mlruns.db`) in your project directory. On Windows, use:
+
+```bash
+zenml experiment-tracker register uae_house_price_mlflow_tracker ^
+  --flavor=mlflow ^
+  --tracking_uri="sqlite:///mlruns.db"
+```
+
+### Step 5: Register MLflow Model Deployer (Optional)
+
+If you want to use ZenML's deployment capabilities:
+
+```bash
+zenml model-deployer register uae_house_price_mlflow_deployer --flavor=mlflow
+```
+
+### Step 6: Create a Custom Stack
+
+Register a new ZenML stack that combines default orchestrator, artifact store, and your MLflow components:
+
+```bash
+zenml stack register uae_house_price_stack \
+  -a default \
+  -o default \
+  -d uae_house_price_mlflow_deployer \
+  -e uae_house_price_mlflow_tracker \
+  --set
+```
+
+Flags explained:
+- `-a default` — use the default artifact store (local filesystem)
+- `-o default` — use the default orchestrator (local)
+- `-d` — model deployer (MLflow)
+- `-e` — experiment tracker (MLflow)
+- `--set` — make this the active stack
+
+### Step 7: Verify Your Stack
+
+Confirm the stack is set correctly:
+
+```bash
+zenml stack describe
+```
+
+You should see your stack configuration with the registered components.
+
+### Step 8: Launch MLflow UI (for monitoring)
+
+While your pipeline runs, view training metrics in the MLflow UI:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlruns.db
+```
+
+Then open your browser to `http://localhost:5000` to see experiments, metrics, and model runs.
+
+### Step 9: Run the Training Pipeline
+
+Execute the training pipeline, which will automatically log metrics to MLflow:
+
+```bash
+python run_pipeline.py
+```
+
+ZenML will orchestrate the pipeline stages (data ingestion → feature engineering → training → evaluation) and log results to your registered MLflow tracker.
+
+### Useful ZenML Commands
+
+```bash
+# View all registered stacks
+zenml stack list
+
+# Switch to a different stack
+zenml stack set <stack_name>
+
+# Inspect a specific stack
+zenml stack describe <stack_name>
+
+# List all experiment trackers
+zenml experiment-tracker list
+
+# List all model deployers
+zenml model-deployer list
+
+# Delete a stack (if needed)
+zenml stack delete <stack_name>
+```
+
+---
+
+## MLflow Experiment Tracking & Metrics
+
+This project logs all training runs to MLflow for easy comparison and reproducibility.
+
+### Accessing MLflow
+
+After running the pipeline, launch the MLflow UI:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlruns.db
+```
+
+Navigate to `http://localhost:5000` in your browser. Refer to the demo below.
+
+### Interpreting the Metrics
+
+- **R² Score**: Proportion of variance explained. 0.81 means the model explains 81% of rent variation.
+- **MAE (Mean Absolute Error)**: Average prediction error. 25,600 AED means predictions are off by ~26k AED on average.
+- **Log-space metrics**: Used for fair comparison across runs with different data preprocessing; reported separately from human-readable AED-space metrics.
+
+### Comparing Runs in MLflow
+
+1. **View all experiments**: The `Default` experiment collects all pipeline runs.
+2. **Compare metrics**: MLflow's compare view shows side-by-side performance across runs (useful when testing hyperparameter changes).
+3. **Download artifacts**: Each run's trained model, feature engineer object, and config are saved and downloadable.
+
+### Using Metrics for Model Selection
+
+The deployment pipeline uses the MAE threshold to decide whether to promote a model:
+
+```python
+if mae_aed_space < DEPLOYMENT_MAE_THRESHOLD:
+    # Promote to production
+    deploy_model()
+else:
+    # Log warning and skip deployment
+    logger.warning(f"MAE {mae_aed_space} exceeds threshold")
+```
+
+This ensures only models meeting quality standards are deployed.
+
+---
+
+## Why Next.js instead of Streamlit?
 
 Honest answer: personal preference, not necessity.
 
@@ -147,6 +314,22 @@ npm run dev
 
 ---
 
+## Docker Setup (Production)
+
+Build and run with Docker Compose locally:
+
+```bash
+docker-compose up
+```
+
+This spins up:
+- **Backend** on `http://localhost:8080`
+- **Frontend** on `http://localhost:3000`
+
+Models load from local storage or download from Hugging Face on first request.
+
+---
+
 ## A note on the process
 
 A meaningful share of the actual work on this project was debugging environment and infrastructure issues rather than modeling: WSL/venv path confusion, ZenML's local daemon flakiness, Git LFS pointer resolution failing silently in a CI environment, a Hugging Face Spaces quota bug affecting multiple users, and several Docker build-context mismatches between local, Hugging Face, and Railway. None of that is a footnote — it's genuinely most of what building and deploying a real ML project looks like, and it's the part most tutorials skip. If you're newer to this kind of project, expect that ratio, and don't take it as a sign something's wrong with your approach.
@@ -156,3 +339,12 @@ A meaningful share of the actual work on this project was debugging environment 
 ## License
 
 MIT
+
+**Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app/](#) &nbsp;·&nbsp;
+
+
+
+
+
+
+ 
