@@ -2,7 +2,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+#laod model
 from model_loader import load_model, load_feature_engineer
 from routes.predict import router as predict_router
 from schemas import HealthResponse
