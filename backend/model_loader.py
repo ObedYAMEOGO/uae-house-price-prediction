@@ -6,7 +6,8 @@ from pathlib import Path
 import joblib
 from sklearn.base import RegressorMixin
 
-from src.feature_engineering import FeatureEngineer
+from feature_engineering import FeatureEngineer
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
