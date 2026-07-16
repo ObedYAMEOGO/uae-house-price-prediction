@@ -1,17 +1,9 @@
 FROM python:3.11-slim
-
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y \
-    gcc \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 8080
-
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
+# Copy backend code AND src/ (FeatureEngineer class needed for unpickling)
+COPY backend/ ./backend/
+COPY src/ ./src/
+EXPOSE 7860
+CMD ["sh", "-c", "uvicorn backend.app:app --host 0.0.0.0 --port ${PORT:-7860}"]

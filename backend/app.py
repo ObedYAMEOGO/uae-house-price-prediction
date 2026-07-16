@@ -11,6 +11,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Replace "*" with your actual Vercel domain once the frontend is deployed.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

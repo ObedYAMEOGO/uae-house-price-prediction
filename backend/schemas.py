@@ -12,8 +12,8 @@ class PropertyFeatures(BaseModel):
     furnishing: str = Field(..., description="'Furnished' or 'Unfurnished'")
     location: str = Field(..., description="Neighborhood/community, e.g. 'Dubai Marina'")
 
-    model_config = {
-        "json_schema_extra": {
+    class Config:
+        json_schema_extra = {
             "example": {
                 "beds": 2,
                 "baths": 2,
@@ -24,7 +24,6 @@ class PropertyFeatures(BaseModel):
                 "location": "Dubai Marina",
             }
         }
-    }
 
 
 class PredictionResponse(BaseModel):
@@ -37,7 +36,3 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     feature_engineer_loaded: bool
-    
-    model_config = {
-        "protected_namespaces": ()
-    }
