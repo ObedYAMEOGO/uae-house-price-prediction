@@ -2,7 +2,7 @@
 
 This project is an end-to-end machine learning project that predicts annual property rent (in AED) for residential listings across the UAE — from raw data to a live, deployed web app.
 
-**Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app/](#) &nbsp;·&nbsp; **Model source:** [https://huggingface.co/thehatbuddy](#)
+**Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app]; **Model source:** [https://huggingface.co/thehatbuddy]
 
 ---
 
@@ -152,6 +152,7 @@ zenml stack register uae_house_price_stack \
   -e uae_house_price_mlflow_tracker \
   --set
 ```
+Note that you can name your stack as you want here I choose to call it `uae_house_price_stack`, `uae_house_price_mlflow_deployer`, `uae_house_price_mlflow_tracker`
 
 Flags explained:
 - `-a default` — use the default artifact store (local filesystem)
@@ -340,11 +341,10 @@ A meaningful share of the actual work on this project was debugging environment 
 
 MIT
 
-**Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app/](#) &nbsp;·&nbsp;
+**Project ive demo:** [https://uae-house-price-prediction-dmkn.vercel.app]
 
+I hope this project can teach more if you are just starting in ML. 
 
+You can contact me either from here or from my website for any query or collaboration.
 
-
-
-
- 
+**Website:** [https://thehatbuddyai.space]
