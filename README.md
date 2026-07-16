@@ -4,13 +4,14 @@ This project is an end-to-end machine learning project that predicts annual prop
 
 **Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app]; **Model source:** [https://huggingface.co/thehatbuddy] 
 
-**Dataset Used:** [https://www.kaggle.com/datasets/alexefimik/dubai-real-estate-transactions-dataset]
 
 ---
 
 ## What this project does
 
 Given a property's basic details like bedrooms, bathrooms, size, city, furnishing status, and neighborhood, the app returns an instant estimate of annual rent in AED.
+
+**Dataset Used:** [https://www.kaggle.com/datasets/alexefimik/dubai-real-estate-transactions-dataset]
 
 Under the hood, it's a Random Forest Regressor trained on ~74,000 real UAE property listings, wrapped in a full production-style pipeline: data cleaning, feature engineering, experiment tracking, a REST API, and a deployed frontend.
 
