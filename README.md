@@ -17,7 +17,8 @@ Under the hood, it's a Random Forest Regressor trained on ~74,000 real UAE prope
 
 This isn't a notebook that stops at "here's my accuracy score." It's built the way a real ML system would need to work, with the debugging scars to prove it (more on that below).
 
-<img width="3167" height="628" alt="UAE_Rent_Prediction_Architecture" src="https://github.com/user-attachments/assets/59119ece-092d-481f-8cfd-a7dc241abba2" />
+<img width="2257" height="1260" alt="pipeline" src="https://github.com/user-attachments/assets/2c43e430-fce6-4b5d-9b18-f68cb6e026c9" />
+
 
 I hosted the model on Hugging Face ([https://huggingface.co/thehatbuddy](https://huggingface.co/thehatbuddy)) because it was too large to bundle with the application, and the backend downloads it at container startup instead of baking it into the Docker image or relying on Git LFS in the main repository. This approach avoids Git LFS pointer issues during Railway deployments by ensuring the actual model is fetched directly at runtime, as explained in the [Deployment Architecture](#deployment-architecture) section.
 
