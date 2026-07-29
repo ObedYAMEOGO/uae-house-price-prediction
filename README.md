@@ -2,7 +2,7 @@
 
 This project is an end-to-end machine learning project that predicts annual property rent (in AED) for residential listings across the UAE — from raw data to a live, deployed web app.
 
-**Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app]; **Model source:** [https://huggingface.co/thehatbuddy] 
+**Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app]; **Model source:** [https://huggingface.co/thehatbuddy]
 
 
 ---
@@ -13,14 +13,14 @@ Given a property's basic details like bedrooms, bathrooms, size, city, furnishin
 
 **Dataset Used:** [https://www.kaggle.com/datasets/alexefimik/dubai-real-estate-transactions-dataset]
 
-Under the hood, it's a Random Forest Regressor trained on ~74,000 real UAE property listings, wrapped in a full production-style pipeline: data cleaning, feature engineering, experiment tracking, a REST API, and a deployed frontend.
+Under the hood, it's a Random Forest Regressor trained on ~74,000 real UAE property listings, wrapped in a full production-style pipeline: data cleaning, feature engineering, experiment tracking, and a deployment pipeline.
 
 This isn't a notebook that stops at "here's my accuracy score." It's built the way a real ML system would need to work, with the debugging scars to prove it (more on that below).
 
 <img width="2257" height="1260" alt="pipeline" src="https://github.com/user-attachments/assets/2c43e430-fce6-4b5d-9b18-f68cb6e026c9" />
 
 
-I hosted the model on Hugging Face ([https://huggingface.co/thehatbuddy](https://huggingface.co/thehatbuddy)) because it was too large to bundle with the application, and the backend downloads it at container startup instead of baking it into the Docker image or relying on Git LFS in the main repository. This approach avoids Git LFS pointer issues during Railway deployments by ensuring the actual model is fetched directly at runtime, as explained in the [Deployment Architecture](#deployment-architecture) section.
+I hosted the model on Hugging Face ([https://huggingface.co/thehatbuddy](https://huggingface.co/thehatbuddy)) because it was too large to bundle with the application, and the backend downloads it at runtime when needed.
 
 ---
 
@@ -44,17 +44,17 @@ I hosted the model on Hugging Face ([https://huggingface.co/thehatbuddy](https:/
 
 1. **EDA** — Investigated ~74,000 listings before writing any modeling code. Found and addressed:
    - **Target leakage**: `Rent_per_sqft` was mathematically derived from `Rent / Area_in_sqft` — an exact leak, confirmed numerically before dropping it.
-   - **A real geocoding bug**: 140 listings tagged to a Sharjah community were geocoded to coordinates in Yemen. Ultimately resolved by dropping `Latitude`/`Longitude` entirely, since categorical `City`/`Location` already carried strong location signal.
+   - **A real geocoding bug**: 140 listings tagged to a Sharjah community were geocoded to coordinates in Yemen. Ultimately resolved by dropping `Latitude`/`Longitude` entirely, since categorical location information was more reliable for this dataset.
    - **Severe target skew** (skewness of 83.7) — addressed with a `log1p` transform on `Rent`, reversed at prediction time with `expm1`.
-   - **Long-tail categorical cardinality** — 441 unique `Location` values, but the top 108 (≥100 listings each) cover ~91% of the data. Rare locations bucketed into `"Other"` rather than one-hot-encoding all 441.
+   - **Long-tail categorical cardinality** — 441 unique `Location` values, but the top 108 (≥100 listings each) cover ~91% of the data. Rare locations bucketed into `"Other"` rather than one-hot encoding everything.
 
-2. **Cleaning & feature engineering** — Built with the Strategy, Factory, and Template Method design patterns rather than throwaway scripts, so each step (outlier handling, encoding, bucketing) is independently swappable and testable. Outlier removal uses a **percentile-based** method (not Z-score or IQR), deliberately chosen because the target's severe skew makes those methods misclassify legitimate high-value listings as outliers.
+2. **Cleaning & feature engineering** — Built with the Strategy, Factory, and Template Method design patterns rather than throwaway scripts, so each step (outlier handling, encoding, bucketing) can be tested and reused.
 
-3. **Model training** — Random Forest Regressor, selected over a linear baseline for its ability to capture non-linear interactions between location, property type, and size. Config-driven via `configs/model_config.yaml`, so switching models or tuning hyperparameters doesn't require touching code.
+3. **Model training** — Random Forest Regressor, selected over a linear baseline for its ability to capture non-linear interactions between location, property type, and size. Config-driven via `configs/model_config.yaml`.
 
 4. **Evaluation** — Metrics computed in *both* log-space (fair comparison across runs) and real AED-space (human-readable). Final model: **R² ≈ 0.81 (AED-space)**, **MAE ≈ 25,600 AED**.
 
-5. **Deployment** — A conditional deployment trigger only promotes a model if it clears an MAE threshold, rather than deploying unconditionally on every run — a small but real safeguard against silently shipping a worse model.
+5. **Deployment** — A conditional deployment trigger only promotes a model if it clears an MAE threshold, rather than deploying unconditionally on every run — a small but real safeguard against promoting worse models.
 
 ---
 
@@ -62,13 +62,13 @@ I hosted the model on Hugging Face ([https://huggingface.co/thehatbuddy](https:/
 
 The trained model (~54MB) needed to be reachable at inference time by a separate FastAPI backend. Three approaches were tried, in this order, for reasons worth documenting honestly:
 
-1. **ZenML's local MLflow model deployer** — works, and is a legitimate way to demonstrate a continuous-deployment pattern (train → evaluate → conditionally deploy → serve), but its local daemon process proved unreliable in a WSL environment specifically — it would die between separate script invocations, requiring manual restarts. Kept in the codebase (`pipelines/deployment_pipeline.py`) as a demonstration of the pattern, but not used for the actual live deployment.
+1. **ZenML's local MLflow model deployer** — works, and is a legitimate way to demonstrate a continuous-deployment pattern (train → evaluate → conditionally deploy → serve), but its local daemon approach is more suitable for demos than production deployments.
 
-2. **Git LFS in the main repo** — committing `model.pkl` via Git LFS worked for local development, but Railway's build process pulled the **LFS pointer file** (a 133-byte text reference) instead of resolving it to the real binary, since its build environment doesn't automatically run `git lfs pull` during checkout. This silently broke model loading in production (`model_loaded: false`) despite working perfectly locally.
+2. **Git LFS in the main repo** — committing `model.pkl` via Git LFS worked for local development, but Railway's build process pulled the **LFS pointer file** (a 133-byte text reference) instead of the binary during runtime, causing the runtime to fail to load the model.
 
-3. **Runtime download from Hugging Face (current approach)** — the backend downloads `model.pkl` and `feature_engineer.pkl` from a stable Hugging Face URL on first request, with a size-check guard against ever loading a stale pointer file again. This decouples the backend's deployment from any git/LFS quirks entirely, and reuses infrastructure (the Hugging Face Space) already proven reliable.
+3. **Runtime download from Hugging Face (current approach)** — the backend downloads `model.pkl` and `feature_engineer.pkl` from a stable Hugging Face URL on first request, with a size-check guard to avoid partial downloads.
 
-**Practical consequence of this design**: retraining the model locally does *not* automatically update what's live. The Hugging Face Space's copy must be manually updated (`cp` the new artifacts into the Space's local clone, commit, push) before Railway's next cold start will pick up the change. For a project without frequent retraining, this manual sync is an acceptable tradeoff; a production system with active retraining would want a proper model registry with versioned promotion instead.
+**Practical consequence of this design**: retraining the model locally does *not* automatically update what's live. The Hugging Face Space's copy must be manually updated (`cp` the new artifacts into the Space and push), or the deployment pipeline replaced with a registry-backed workflow.
 
 ---
 
@@ -84,8 +84,25 @@ Ensure you have Python 3.8+ and the project dependencies installed:
 git clone https://github.com/ObedYAMEOGO/uae-house-price-prediction.git
 cd uae-house-price-prediction
 python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate but I strongly recommenyou to switch to a linux distribution because it fill fix your daemon flakiness issues. I am using Windows OS, got to install WSL so that I could get access to a linux friendly env to run my project. 
+# macOS / Linux
+source .venv/bin/activate
+# On Windows (PowerShell)
+# .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
+
+Notes:
+- If you're on Windows and prefer bash-like behavior, consider Git Bash or WSL for smoother compatibility with some tooling.
+- If ZenML or MLflow integrations fail to import, install the integration extras below.
+
+### Install ZenML with MLflow integration (if not already in requirements)
+
+```bash
+pip install --upgrade pip
+pip install "zenml[mlflow]" mlflow
+# optionally install all ZenML integrations (larger):
+# pip install "zenml[all]"
+zenml integration install mlflow
 ```
 
 ### Step 1: Initialize ZenML
@@ -120,7 +137,7 @@ Initially, you'll see a `default` stack.
 
 ### Step 4: Register MLflow Experiment Tracker
 
-Register an MLflow experiment tracker that will log training metrics and model metadata:
+Register an MLflow experiment tracker that will log training metrics and model metadata. This example uses a local SQLite backend file `mlruns.db`.
 
 ```bash
 zenml experiment-tracker register uae_house_price_mlflow_tracker \
@@ -128,12 +145,31 @@ zenml experiment-tracker register uae_house_price_mlflow_tracker \
   --tracking_uri="sqlite:///$(pwd)/mlruns.db"
 ```
 
-This creates a local SQLite database for MLflow (`mlruns.db`) in your project directory. On Windows, use:
+On Windows PowerShell you can register with:
+
+```powershell
+zenml experiment-tracker register uae_house_price_mlflow_tracker `
+  --flavor=mlflow `
+  --tracking_uri="sqlite:///$(pwd)/mlruns.db"
+```
+
+Notes:
+- If you prefer the classic MLflow `mlruns/` directory layout instead of a SQLite file, set tracking_uri to a folder or use a real MLflow server: `--tracking_uri="file:$(pwd)/mlruns"` or set up a remote MLflow server.
+- Make sure `mlflow` is installed in your environment (pip install mlflow).
+
+### Optional: Register local artifact store, metadata store, and orchestrator
+
+Registering explicit components makes your stack reproducible and easy to inspect.
 
 ```bash
-zenml experiment-tracker register uae_house_price_mlflow_tracker ^
-  --flavor=mlflow ^
-  --tracking_uri="sqlite:///mlruns.db"
+# local artifact store (files on disk)
+zenml artifact-store register local_artifact_store --flavor=local --path=./zenml_artifacts
+
+# local SQLite metadata store (ZenML metadata)
+zenml metadata-store register sqlite_metadata_store --flavor=sqlite --database="sqlite:///$(pwd)/zenml_metadata.db"
+
+# local orchestrator
+zenml orchestrator register local_orchestrator --flavor=local
 ```
 
 ### Step 5: Register MLflow Model Deployer (Optional)
@@ -144,23 +180,24 @@ If you want to use ZenML's deployment capabilities:
 zenml model-deployer register uae_house_price_mlflow_deployer --flavor=mlflow
 ```
 
-### Step 6: Create a Custom Stack
+### Step 6: Create and set a custom stack
 
-Register a new ZenML stack that combines default orchestrator, artifact store, and your MLflow components:
+Register a new ZenML stack that combines the components you registered above and make it the active stack:
 
 ```bash
 zenml stack register uae_house_price_stack \
-  -a default \
-  -o default \
+  -a local_artifact_store \
+  -o local_orchestrator \
   -d uae_house_price_mlflow_deployer \
   -e uae_house_price_mlflow_tracker \
   --set
 ```
-Note that you can name your stack as you want here I choose to call it `uae_house_price_stack`, `uae_house_price_mlflow_deployer`, `uae_house_price_mlflow_tracker`
+
+If you prefer to reuse the `default` artifact store/orchestrator, replace `local_artifact_store` / `local_orchestrator` with `default`.
 
 Flags explained:
-- `-a default` — use the default artifact store (local filesystem)
-- `-o default` — use the default orchestrator (local)
+- `-a` — artifact store
+- `-o` — orchestrator
 - `-d` — model deployer (MLflow)
 - `-e` — experiment tracker (MLflow)
 - `--set` — make this the active stack
@@ -177,10 +214,18 @@ You should see your stack configuration with the registered components.
 
 ### Step 8: Launch MLflow UI (for monitoring)
 
-While your pipeline runs, view training metrics in the MLflow UI:
+While your pipeline runs, view training metrics in the MLflow UI.
+
+If you used the SQLite `mlruns.db` backend above:
 
 ```bash
-mlflow ui --backend-store-uri sqlite:///mlruns.db
+mlflow ui --backend-store-uri sqlite:///$(pwd)/mlruns.db
+```
+
+If you used the `mlruns/` folder layout instead:
+
+```bash
+mlflow ui --backend-store-uri file:$(pwd)/mlruns
 ```
 
 Then open your browser to `http://localhost:5000` to see experiments, metrics, and model runs.
@@ -195,7 +240,46 @@ python run_pipeline.py
 
 ZenML will orchestrate the pipeline stages (data ingestion → feature engineering → training → evaluation) and log results to your registered MLflow tracker.
 
-### Useful ZenML Commands
+You can also list registered pipelines and run a specific pipeline via ZenML CLI:
+
+```bash
+zenml pipeline list
+# then, to run a pipeline (example)
+python pipelines/train_pipeline.py
+```
+
+### Ensure MLflow `mlruns` is ignored before pushing to GitHub
+
+If you have an `mlruns/` folder (the MLflow default) or `mlruns.db` from using a SQLite backend, make sure those artifacts are ignored and not committed to the repository. The repository's `.gitignore` already includes `mlruns/` and `mlruns.db`, but if you previously committed them you'll need to untrack them locally before pushing:
+
+```bash
+# add to .gitignore if missing (safe even if already present)
+echo "mlruns/" >> .gitignore
+echo "mlruns.db" >> .gitignore
+
+# If mlruns or mlruns.db were already committed, untrack them while keeping local files
+git rm -r --cached mlruns || true
+git rm --cached mlruns.db || true
+
+# commit the change to .gitignore and the removal from the index
+git add .gitignore
+git commit -m "Ignore MLflow tracking artifacts (mlruns/ and mlruns.db)"
+git push
+```
+
+On Windows PowerShell use Add-Content to append to .gitignore:
+
+```powershell
+Add-Content .gitignore "mlruns/"
+Add-Content .gitignore "mlruns.db"
+```
+
+Notes:
+- `git rm --cached` removes files from the Git index (stops tracking) but keeps them on your local disk. This is the safe way to stop tracking MLflow artifacts.
+
+---
+
+## Useful ZenML Commands
 
 ```bash
 # View all registered stacks
@@ -225,13 +309,7 @@ This project logs all training runs to MLflow for easy comparison and reproducib
 
 ### Accessing MLflow
 
-After running the pipeline, launch the MLflow UI:
-
-```bash
-mlflow ui --backend-store-uri sqlite:///mlruns.db
-```
-
-Navigate to `http://localhost:5000` in your browser. Refer to the demo below.
+After running the pipeline, launch the MLflow UI (see Step 8 above) and navigate to `http://localhost:5000` in your browser.
 
 ### Interpreting the Metrics
 
@@ -266,9 +344,7 @@ This ensures only models meeting quality standards are deployed.
 
 Honest answer: personal preference, not necessity.
 
-**Streamlit would have been the pragmatic choice.** One Python file, no separate frontend framework, no CORS configuration, no cross-origin deployment coordination, deployable to Streamlit Community Cloud in about fifteen minutes. For anyone wanting to get a model in front of people with minimal friction, Streamlit (or Gradio) is genuinely the right tool, and this project's own deployment journey — Hugging Face quota bugs, Railway build-context mismatches, Git LFS pointer resolution failures — is a fairly strong argument *for* the simpler path.
-
-Next.js was chosen anyway because I enjoy building and designing real interfaces, and wanted the practice of shipping a proper separated frontend/backend architecture — the kind of setup a production web app would actually use, with its own design system rather than an auto-generated widget layout. That's a legitimate reason to pick the harder path for a portfolio project, but it isn't the *only* reasonable choice, and I'd point a beginner toward Streamlit first if their goal is simply "get a model into a usable demo, fast."
+**Streamlit would have been the pragmatic choice.** One Python file, no separate frontend framework, no CORS configuration, no cross-origin deployment coordination, deployable to Streamlit Community Cloud. Next.js was chosen anyway because I enjoy building and designing real interfaces, and wanted the practice of shipping a proper separated frontend/backend architecture — the kind of setup a production team might use.
 
 ---
 
@@ -276,22 +352,12 @@ Next.js was chosen anyway because I enjoy building and designing real interfaces
 
 This project stops at "a working, deployed prediction service." Several natural extensions were left out deliberately, either for scope or time:
 
-- **Observability with [Evidently AI](https://www.evidentlyai.com/)** — the single most valuable addition for anyone extending this project. Currently, if the UAE rental market shifts (new developments, pricing changes, seasonal effects), the deployed model has no way of knowing its predictions are drifting from reality. Evidently could be wired in as a scheduled ZenML pipeline that:
-  - Compares incoming prediction requests against the training data's feature distributions (data drift detection)
-  - Flags when categorical distributions shift (e.g., a sudden influx of requests for locations barely represented in training)
-  - Generates a dashboard report reviewable on a cadence, rather than silently trusting a model that may be stale
-  
-  This is the difference between "I trained a model" and "I built a system that knows when it needs retraining" — a meaningfully more advanced signal for anyone reviewing the project.
-
-- **A proper model registry with versioned promotion** — rather than manually copying `.pkl` files between three separate locations (local machine, Hugging Face Space, Railway's runtime download), a registry (MLflow's own, or a cloud alternative) with a "Production" alias would let the backend always pull the latest promoted version automatically.
-
+- **Observability with [Evidently AI](https://www.evidentlyai.com/)** — the single most valuable addition for anyone extending this project. Currently, if the UAE rental market shifts (new developments, policy changes), there is no automated drift detection.
+- **A proper model registry with versioned promotion** — rather than manually copying `.pkl` files between three separate locations (local machine, Hugging Face Space, Railway's runtime downloads).
 - **Automated retraining on new data** — a scheduled pipeline re-running ingestion → cleaning → training → evaluation → conditional promotion, rather than a manual `python run_pipeline.py` invocation.
-
-- **A/B testing between model versions** — training both a Random Forest and a linear regression baseline (the codebase already supports switching between them via `configs/model_config.yaml`) and logging both to MLflow for side-by-side comparison, or serving both simultaneously to compare real-world performance.
-
-- **Rate limiting and stricter CORS** — the deployed API currently allows requests from any origin (`allow_origins=["*"]`), reasonable for a portfolio demo but worth tightening (to the actual frontend domain) and adding basic rate limiting before treating this as anything beyond a demo.
-
-- **Automated tests** — the project has none yet. Given the design-pattern-based structure (`Strategy`, `Factory`, `Template Method` classes throughout `src/`), each strategy is independently unit-testable in isolation — a natural next step for anyone picking this up.
+- **A/B testing between model versions** — training both a Random Forest and a linear regression baseline (the codebase already supports switching between them via `configs/model_config.yaml`).
+- **Rate limiting and stricter CORS** — the deployed API currently allows requests from any origin (`allow_origins=["*"]`), reasonable for a portfolio demo but worth tightening to a specific frontend origin.
+- **Automated tests** — the project has none yet. Given the design-pattern-based structure (`Strategy`, `Factory`, `Template Method` classes throughout `src/`), each strategy is independently unit-testable.
 
 ---
 
@@ -337,7 +403,7 @@ Models load from local storage or download from Hugging Face on first request.
 
 ## A note on the process
 
-A meaningful share of the actual work on this project was debugging environment and infrastructure issues rather than modeling: WSL/venv path confusion, ZenML's local daemon flakiness, Git LFS pointer resolution failing silently in a CI environment, a Hugging Face Spaces quota bug affecting multiple users, and several Docker build-context mismatches between local, Hugging Face, and Railway. None of that is a footnote — it's genuinely most of what building and deploying a real ML project looks like, and it's the part most tutorials skip. If you're newer to this kind of project, expect that ratio, and don't take it as a sign something's wrong with your approach.
+A meaningful share of the actual work on this project was debugging environment and infrastructure issues rather than modeling: WSL/venv path confusion, ZenML's local daemon flakiness, Git LFS pointer issues, and deployment trade-offs.
 
 ---
 
@@ -347,9 +413,7 @@ MIT
 
 **Project Live demo:** [https://uae-house-price-prediction-dmkn.vercel.app]
 
-I hope this project can teach more if you are just starting in ML. I specially worked on this project to fill a gap. How to actually build and ship a real-world Machine learning project? 
-
-
+I hope this project can teach more if you are just starting in ML. I specially worked on this project to fill a gap. How to actually build and ship a real-world Machine learning project?
 
 You can contact me either from here or from my website for any query or collaboration.
 
